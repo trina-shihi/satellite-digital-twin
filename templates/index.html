@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Satellite Digital Twin</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            background: linear-gradient(135deg, #0b0f1a, #111827);
+            color: #e5e7eb;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        h1 {
+            text-align: center;
+            padding: 10px;
+            font-weight: 500;
+        }
+
+        .container {
+            display: flex;
+            height: 88vh;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .left, .center, .right {
+            padding: 10px;
+        }
+
+        .left { width: 25%; }
+        .center { width: 50%; }
+        .right { width: 25%; }
+
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 15px;
+            margin-bottom: 15px;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        #status {
+            font-size: 18px;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        canvas {
+            width: 100% !important;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>Satellite Monitoring Simulation</h1>
+
+<div class="container">
+
+    <!-- Orbit -->
+    <div class="left card">
+        <div style="font-weight:600; margin-bottom:10px;">Orbit Simulation</div>
+        <canvas id="orbitCanvas"></canvas>
+    </div>
+
+    <!-- Graph -->
+    <div class="center">
+        <div class="card">
+            <div style="font-weight:600; margin-bottom:10px;">Telemetry Trends</div>
+            <canvas id="chart"></canvas>
+        </div>
+
+        <!-- Hash moved BELOW graph -->
+        <div class="card">
+            <div style="font-weight:600; margin-bottom:10px;">Data Integrity</div>
+            <div style="word-wrap: break-word; font-size: 12px;">
+                <div id="hash"></div>
+                <div id="prevHash"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right">
+
+        <!-- Telemetry (now TOP — no scrolling needed) -->
+        <div class="card">
+            <div style="font-weight:600; margin-bottom:10px;">Live Status</div>
+
+            <div id="status">Status: Normal</div>
+
+            <div>Temperature: <span id="temp"></span></div>
+            <div>Expected: <span id="expected"></span></div>
+            <div>Battery: <span id="battery"></span></div>
+            <div>Signal: <span id="signal"></span></div>
+
+            <hr>
+            <div>Total Anomalies: <span id="count">0</span></div>
+        </div>
+
+        <!-- Event Log -->
+        <div class="card">
+            <div style="font-weight:600; margin-bottom:10px;">Event Log</div>
+            <ul id="log" style="height:250px; overflow-y:auto; font-size:13px; padding-left:15px;"></ul>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+let labels = [];
+let tempData = [];
+let signalData = [];
+
+let anomalyFlag = false;
+let anomalyCount = 0;
+
+// Chart with TWO lines
+const ctx = document.getElementById('chart').getContext('2d');
+
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Temperature',
+                data: tempData,
+                tension: 0.4
+            },
+            {
+                label: 'Signal Strength',
+                data: signalData,
+                tension: 0.4
+            }
+        ]
+    }
+});
+
+// Log
+function updateLog(message) {
+    const log = document.getElementById("log");
+    const li = document.createElement("li");
+
+    li.innerText = message;
+
+    if (message.includes("Anomaly")) {
+        li.style.color = "#ff6b6b";
+    } else {
+        li.style.color = "#9ca3af";
+    }
+
+    log.appendChild(li);
+    log.scrollTop = log.scrollHeight;
+}
+
+// Fetch Data
+async function fetchData() {
+    const res = await fetch('/data');
+    const result = await res.json();
+
+    const d = result.data;
+
+    document.getElementById("temp").innerText = d.temperature;
+    document.getElementById("expected").innerText = result.expected_temp;
+    document.getElementById("battery").innerText = d.battery;
+    document.getElementById("signal").innerText = d.signal;
+
+    document.getElementById("hash").innerText = "Hash: " + result.hash;
+    document.getElementById("prevHash").innerText = "Previous: " + result.previous_hash;
+
+    anomalyFlag = result.anomaly;
+
+    const statusEl = document.getElementById("status");
+
+    if (result.anomaly) {
+        statusEl.innerText = "Status: Anomaly Detected";
+        statusEl.style.color = "#ff4d4d";
+
+        anomalyCount++;
+        document.getElementById("count").innerText = anomalyCount;
+
+        updateLog("Anomaly detected at " + d.timestamp);
+    } else {
+        statusEl.innerText = "Status: Normal";
+        statusEl.style.color = "#22c55e";
+
+        updateLog("System normal at " + d.timestamp);
+    }
+
+    // Graph update
+    labels.push(d.timestamp);
+    tempData.push(d.temperature);
+    signalData.push(d.signal);
+
+    if (labels.length > 20) {
+        labels.shift();
+        tempData.shift();
+        signalData.shift();
+    }
+
+    chart.update();
+}
+
+setInterval(fetchData, 1000);
+
+
+// Orbit Animation
+const canvas = document.getElementById("orbitCanvas");
+const ctx2 = canvas.getContext("2d");
+
+canvas.width = 300;
+canvas.height = 300;
+
+let angle = 0;
+
+function drawOrbit() {
+    ctx2.clearRect(0, 0, canvas.width, canvas.height);
+
+    const centerX = 150;
+    const centerY = 150;
+
+    let radius = 80;
+
+    if (anomalyFlag) {
+        radius = 100 + Math.random() * 10;
+    }
+
+    ctx2.beginPath();
+    ctx2.arc(centerX, centerY, 80, 0, Math.PI * 2);
+    ctx2.strokeStyle = "#555";
+    ctx2.stroke();
+
+    const x = centerX + radius * Math.cos(angle);
+    const y = centerY + radius * Math.sin(angle);
+
+    ctx2.beginPath();
+    ctx2.arc(x, y, 5, 0, Math.PI * 2);
+
+    ctx2.shadowBlur = anomalyFlag ? 20 : 10;
+    ctx2.shadowColor = anomalyFlag ? "red" : "#00d4ff";
+
+    ctx2.fillStyle = anomalyFlag ? "red" : "#00d4ff";
+    ctx2.fill();
+
+    angle += 0.02;
+
+    requestAnimationFrame(drawOrbit);
+}
+
+drawOrbit();
+</script>
+
+</body>
+</html>
