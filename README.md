@@ -2,7 +2,6 @@
 
 A real-time satellite telemetry monitoring simulation with an interactive dashboard.
 
-
 ## Features
 
 - Live satellite telemetry simulation
