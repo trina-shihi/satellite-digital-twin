@@ -1,6 +1,6 @@
 # Satellite Digital Twin
 
-# A real-time satellite telemetry monitoring simulation with an interactive dashboard.
+A real-time satellite telemetry monitoring simulation with an interactive dashboard.
 
 ## Features
 
