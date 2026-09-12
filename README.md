@@ -15,7 +15,6 @@ A real-time satellite telemetry monitoring simulation with an interactive dashbo
 - SHA-256 hash-based data integrity tracking
 - Previous-hash tracking for telemetry data
 
-
 ## Technologies
 
 - Python
