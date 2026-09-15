@@ -142,6 +142,24 @@ const chart = new Chart(ctx, {
     }
 });
 
+
+// Sound alert function
+function playAlertSound() {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.2); 
+}
+
 // Log
 function updateLog(message) {
     const log = document.getElementById("log");
@@ -186,6 +204,7 @@ async function fetchData() {
         document.getElementById("count").innerText = anomalyCount;
 
         updateLog("Anomaly detected at " + d.timestamp);
+        playAlertSound(); // <--- Add it right here!
     } else {
         statusEl.innerText = "Status: Normal";
         statusEl.style.color = "#22c55e";
