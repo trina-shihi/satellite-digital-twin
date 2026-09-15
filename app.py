@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 previous_hash = "0"
 
-# Initial values
+
 last_temp = 55
 last_battery = 80
 last_signal = 75
@@ -31,7 +31,7 @@ def generate_data():
     current_time = time.time()
     anomaly = False
 
-    # Controlled anomaly every ~10 sec
+   
     if current_time - last_anomaly_time > 10:
         anomaly = True
         last_temp += random.uniform(10, 15)
